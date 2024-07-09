@@ -14,37 +14,37 @@ import {
 } from 'react-native';
 
 import {Colors} from 'react-native/Libraries/NewAppScreen';
-// var BLEPeripheral = require('./BLEPeripheral');
+var BLEPeripheral = require('./BLEPeripheral');
 
 type SectionProps = PropsWithChildren<{
   title: string;
 }>;
 
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-}
+// function Section({children, title}: SectionProps): React.JSX.Element {
+//   const isDarkMode = useColorScheme() === 'dark';
+//   return (
+//     <View style={styles.sectionContainer}>
+//       <Text
+//         style={[
+//           styles.sectionTitle,
+//           {
+//             color: isDarkMode ? Colors.white : Colors.black,
+//           },
+//         ]}>
+//         {title}
+//       </Text>
+//       <Text
+//         style={[
+//           styles.sectionDescription,
+//           {
+//             color: isDarkMode ? Colors.light : Colors.dark,
+//           },
+//         ]}>
+//         {children}
+//       </Text>
+//     </View>
+//   );
+// }
 
 export default function HomeScreen() {
   const isDarkMode = useColorScheme() === 'dark';
@@ -54,20 +54,20 @@ export default function HomeScreen() {
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
   };
-  // BLEPeripheral.stop();
-  // BLEPeripheral.setName("JACOBTEST");
-  // BLEPeripheral.addService('00001812-0000-1000-8000-00805F9B34FB', true); //
-  // // BLEPeripheral.addCharacteristicToService("00001812-0000-1000-8000-00805F9B34FB", "00002A33-0000-1000-8000-00805F9B34FB", 1 | 16, 2 | 16, "1"); //
+  BLEPeripheral.stop();
+  BLEPeripheral.setName("JACOBTEST");
+  BLEPeripheral.addService('00001812-0000-1000-8000-00805F9B34FB', true); //
+  // BLEPeripheral.addCharacteristicToService("00001812-0000-1000-8000-00805F9B34FB", "00002A33-0000-1000-8000-00805F9B34FB", 1 | 16, 2 | 16, "1"); //
   const advertise = () => {
     console.log("Advertising")
-    // BLEPeripheral.addHIDCharacteristicToService();
-    // BLEPeripheral.start()
-    // .then(res => {console.log(res)})
-    // .catch(error => {console.log(error)});
+    BLEPeripheral.addHIDCharacteristicToService();
+    BLEPeripheral.start()
+    .then(res => {console.log(res)})
+    .catch(error => {console.log(error)});
   }
   const mouseMove = (data) => {
     console.log("move:", data);
-    // BLEPeripheral.sendNotificationToDevices('00001812-0000-1000-8000-00805F9B34FB', '00002A4D-0000-1000-8000-00805F9B34FB', Array.from(data));
+    BLEPeripheral.sendNotificationToDevices('00001812-0000-1000-8000-00805F9B34FB', '00002A4D-0000-1000-8000-00805F9B34FB', Array.from(data));
   }
   
   const [devName, onChangeDevName] = React.useState('Bluetooth device name');
