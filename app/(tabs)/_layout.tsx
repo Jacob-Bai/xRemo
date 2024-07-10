@@ -17,18 +17,33 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="mouse"
+        options={{
+          title: '',
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name={focused ? 'home' : 'home-outline'} color={color} />
+            <TabBarIcon name={'mouse'} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="robot"
         options={{
-          title: 'Explore',
+          title: '',
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name={focused ? 'code-slash' : 'code-slash-outline'} color={color} />
+            <TabBarIcon name={'robot'} color={color} /> // 
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="bluetooth"
+        options={{
+          title: '',
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon name={'bluetooth'} color={color} /> // bluetooth-off bluetooth-audio bluetooth-transfer
           ),
         }}
       />
