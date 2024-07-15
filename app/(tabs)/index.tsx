@@ -1,62 +1,24 @@
-import React, { useRef } from 'react';
-import type {PropsWithChildren} from 'react';
+import React, { useRef, useState } from 'react';
 import {
-  SafeAreaView,
-  TextInput,
-  StatusBar,
   StyleSheet,
-  Text,
   useColorScheme,
   View,
-  Button,
   PanResponder,
-  TouchableOpacity
+  TouchableOpacity,
 } from 'react-native';
-
-import {Colors} from 'react-native/Libraries/NewAppScreen';
+import { ThemedView } from '@/components/ThemedView';
+import { ThemedText } from '@/components/ThemedText';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Colors } from '@/constants/Colors';
 var BLEPeripheral = require('@/components/BLEPeripheral');
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
-
-// function Section({children, title}: SectionProps): React.JSX.Element {
-//   const isDarkMode = useColorScheme() === 'dark';
-//   return (
-//     <View style={styles.sectionContainer}>
-//       <Text
-//         style={[
-//           styles.sectionTitle,
-//           {
-//             color: isDarkMode ? Colors.white : Colors.black,
-//           },
-//         ]}>
-//         {title}
-//       </Text>
-//       <Text
-//         style={[
-//           styles.sectionDescription,
-//           {
-//             color: isDarkMode ? Colors.light : Colors.dark,
-//           },
-//         ]}>
-//         {children}
-//       </Text>
-//     </View>
-//   );
-// }
-
-export default function HomeScreen() {
-  const isDarkMode = useColorScheme() === 'dark';
+export default function MouseScreen() {
   let value = 1;
   let lastX = 0;
   let lastY = 0;
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
-  BLEPeripheral.stop();
-  BLEPeripheral.setName("JACOBTEST");
-  BLEPeripheral.addService('00001812-0000-1000-8000-00805F9B34FB', true); //
+  // BLEPeripheral.stop();
+  // BLEPeripheral.setName("JACOBTEST");
+  // BLEPeripheral.addService('00001812-0000-1000-8000-00805F9B34FB', true); //
   // BLEPeripheral.addCharacteristicToService("00001812-0000-1000-8000-00805F9B34FB", "00002A33-0000-1000-8000-00805F9B34FB", 1 | 16, 2 | 16, "1"); //
   const advertise = () => {
     console.log("Advertising")
@@ -76,28 +38,19 @@ export default function HomeScreen() {
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onPanResponderGrant: (evt) => {
-        // 触摸开始时处理事件
         const { locationX, locationY } = evt.nativeEvent;
         lastX = locationX;
         lastY = locationY;
-        console.log('Touch Start:', locationX, locationY);
-        // 这里可以添加触发鼠标按下事件的逻辑
       },
       onPanResponderMove: (evt) => {
         const { locationX, locationY } = evt.nativeEvent;
-        let dx = locationX - lastX;
-        let dy = locationY - lastY;
+        handleMouseMove(locationX - lastX, locationY - lastY);
         lastX = locationX;
         lastY = locationY;
-        handleMouseMove(0, Math.round(dx*2), Math.round(dy*2), 0);
       },
-      // onPanResponderRelease: (evt) => {
-      //   // 触摸结束时处理事件
-      //   const { locationX, locationY } = evt.nativeEvent;
-      //   console.log('Touch End:', locationX, locationY);
-      //   handleMouseMove(0, 0, 0);
-      //   // 这里可以添加触发鼠标释放事件的逻辑
-      // },
+      onPanResponderRelease: (evt) => {
+        handleMouseMove(0, 0);
+      },
     })
   ).current;
   const handleMouseMove = (button, dx, dy, vWheel) => {
@@ -105,90 +58,210 @@ export default function HomeScreen() {
     // const reportData = createHidReport(button, dx, dy);
     // onReport(reportData);
   };
-
-  // const createHidReport = (button, dx, dy) => {
-  //   const report = new Uint8Array(3);
-  //   report[0] = button; // 按钮状态
-  //   report[1] = dx; // X 轴相对位移
-  //   report[2] = dy; // Y 轴相对位移
-  //   return report;
-  // };
+  const theme = useColorScheme() ?? 'light';
+  const [layout, setLayout] = useState(0);
+  const handleLayoutChange = () => {
+    if (layout == 2) setLayout(0);
+    else setLayout(layout+1);
+  }
+  const styles = layout==0?styles0:layout==1?styles1:styles2;
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <View style={{backgroundColor: 'rgba(0,0,0,0)'}}>
-        <TextInput
-          style={styles.input}
-          onChangeText={onChangeDevName}
-          value={devName}
-        />
-        <Button
-          title="Ready for connect"
-          onPress={advertise}
-        />
-        <Button
-          title="left"
-          onPress={() => {handleMouseMove(0,0,0,10);handleMouseMove(0,0,0,0)}}
-        />
-        <Button
-          title="right"
-          onPress={() => {handleMouseMove(0,0,0,-10);handleMouseMove(0,0,0,0)}}
-        />
-        <TouchableOpacity
-        //style={styles.button}
-        onPressIn={() => handleMouseMove(1,0,0,0)}
-        onPressOut={() => handleMouseMove(0,0,0,0)}
-      >
-        <Text>Press Me</Text>
-      </TouchableOpacity>
+    <ThemedView style={styles.mouseSection}>
       <TouchableOpacity
-        //style={styles.button}
-        onPressIn={() => handleMouseMove(2,0,0,0)}
-        onPressOut={() => handleMouseMove(0,0,0,0)}
-      >
-        <Text>Press Me</Text>
+        style={styles.layoutButton}
+        onPress={handleLayoutChange}
+        activeOpacity={0.8}>
+        <MaterialCommunityIcons
+          name={'table-refresh'}
+          size={20}
+          color={theme === 'light' ? Colors.light.icon : Colors.dark.icon}
+        />
+        <ThemedText type="default">{layout==0?'Right Scroll Bar':layout==1?'Left Scroll Bar':'Two Finger Scroll'}</ThemedText>
       </TouchableOpacity>
+      <View style={styles.container1}>
+        <View 
+          style={styles.mouseMove} 
+          // {...panResponder.panHandlers} 
+        />
+        <View 
+          style={styles.wheelMove} 
+          // {...panResponder.panHandlers} 
+        />
+      </View> 
+      <View style={styles.container2}>
+        <TouchableOpacity
+          style={styles.button}
+          // onPressIn={() => handleMouseMove(1,0,0,0)}
+          // onPressOut={() => handleMouseMove(0,0,0,0)}
+        >
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.button}
+          // onPressIn={() => handleMouseMove(2,0,0,0)}
+          // onPressOut={() => handleMouseMove(0,0,0,0)}
+        >
+        </TouchableOpacity>
       </View>
-      <View style={styles.toucharea} {...panResponder.panHandlers}>
-        <Text style={styles.text}>滑动以模拟鼠标移</Text>
-      </View>
-    </SafeAreaView>
+    </ThemedView>
   );
 }
 
-const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+
+const styles0 = StyleSheet.create({
+  mouseSection: {
+    height: '100%',
+    flexDirection: 'column',
+    gap: 5,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
+  layoutButton: {
+    flexDirection: 'row',
+    gap: 5,
+    width: '100%',
+    height: '5%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
+  layoutText: {
+    borderColor: '#000000',
+    borderStyle: 'solid',
   },
-  highlight: {
-    fontWeight: '700',
+  container1: {
+    width: '90%',
+    height: '60%',
+    flexDirection: 'row',
+    gap: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  input: {
-    height: 40,
-    margin: 12,
-    borderWidth: 1,
-    padding: 10,
-    backgroundColor: 'white',
+  mouseMove: {
+    width: '82%',
+    height: '100%',
+    borderRadius: 10,
+    backgroundColor: '#bbbbbb',
   },
-  toucharea: {
-    height: 300,
-    backgroundColor: '#f5f5f5',
+  wheelMove: {
+    width: '18%',
+    height: '100%',
+    borderRadius: 10,
+    backgroundColor: '#999999',
   },
-  text: {
-    fontSize: 20,
-    color: '#333',
+  container2: {
+    width: '90%',
+    height: '15%',
+    gap: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  button: {
+    width: '50%',
+    height: '90%',
+    borderRadius: 10,
+    backgroundColor: '#777777',
+  },
+});
+
+const styles1 = StyleSheet.create({
+  mouseSection: {
+    height: '100%',
+    flexDirection: 'column',
+    gap: 5,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  layoutButton: {
+    flexDirection: 'row',
+    gap: 5,
+    width: '100%',
+    height: '5%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  container1: {
+    width: '90%',
+    height: '60%',
+    flexDirection: 'row-reverse',
+    gap: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mouseMove: {
+    width: '82%',
+    height: '100%',
+    borderRadius: 10,
+    backgroundColor: '#bbbbbb',
+  },
+  wheelMove: {
+    width: '18%',
+    height: '100%',
+    borderRadius: 10,
+    backgroundColor: '#999999',
+  },
+  container2: {
+    width: '90%',
+    height: '15%',
+    gap: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  button: {
+    width: '50%',
+    height: '90%',
+    borderRadius: 10,
+    backgroundColor: '#777777',
+  },
+});
+
+const styles2 = StyleSheet.create({
+  mouseSection: {
+    height: '100%',
+    flexDirection: 'column',
+    gap: 5,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  layoutButton: {
+    flexDirection: 'row',
+    gap: 5,
+    width: '100%',
+    height: '5%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  container1: {
+    width: '90%',
+    height: '60%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mouseMove: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 10,
+    backgroundColor: '#bbbbbb',
+  },
+  wheelMove: {
+    width: '0%',
+    height: '100%',
+    borderRadius: 10,
+    backgroundColor: '#999999',
+  },
+  container2: {
+    width: '90%',
+    height: '15%',
+    gap: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  button: {
+    width: '50%',
+    height: '90%',
+    borderRadius: 10,
+    backgroundColor: '#777777',
   },
 });
