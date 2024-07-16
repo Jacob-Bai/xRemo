@@ -4,11 +4,23 @@ import { StyleSheet, View } from 'react-native';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedList } from '@/components/ThemedList';
 import { useState } from 'react';
+const mouseManager = require('@/components/MouseManager');
 
 export default function BleScreen() {
-  
   const [deviceName, setDeviceName] = useState<string>('My mouse');
   const [advertise, setAdvertise] = useState<boolean>(false);
+  
+  mouseManager.init();
+
+  const handleAdvertise = () => {
+    if (!advertise) {
+      mouseManager.setDeviceName(deviceName)
+      mouseManager.startAdvertise();
+    } else {
+      mouseManager.stopAdvertise();
+    }
+    setAdvertise(!advertise);
+  }
   
   return (
     <ThemedView style={[styles.bleSection]}>
@@ -31,7 +43,7 @@ export default function BleScreen() {
           itemName='Discoverable'
           index={2}
           totalItems={2}
-          handleSwitch={setAdvertise}
+          handleSwitch={handleAdvertise}
           switchValue={advertise}
         />
         <ThemedList 

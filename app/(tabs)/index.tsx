@@ -10,30 +10,12 @@ import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Colors } from '@/constants/Colors';
-var BLEPeripheral = require('@/components/BLEPeripheral');
+const mouseManager = require('@/components/MouseManager');
 
 export default function MouseScreen() {
-  let value = 1;
   let lastX = 0;
   let lastY = 0;
-  // BLEPeripheral.stop();
-  // BLEPeripheral.setName("JACOBTEST");
-  // BLEPeripheral.addService('00001812-0000-1000-8000-00805F9B34FB', true); //
-  // BLEPeripheral.addCharacteristicToService("00001812-0000-1000-8000-00805F9B34FB", "00002A33-0000-1000-8000-00805F9B34FB", 1 | 16, 2 | 16, "1"); //
-  const advertise = () => {
-    console.log("Advertising")
-    BLEPeripheral.addHIDCharacteristicToService();
-    BLEPeripheral.start()
-    .then(res => {console.log(res)})
-    .catch(error => {console.log(error)});
-  }
-  const mouseMove = (data) => {
-    console.log("move:", data);
-    BLEPeripheral.sendNotificationToDevices('00001812-0000-1000-8000-00805F9B34FB', '00002A4D-0000-1000-8000-00805F9B34FB', Array.from(data));
-  }
   
-  const [devName, onChangeDevName] = React.useState('Bluetooth device name');
-
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -44,20 +26,16 @@ export default function MouseScreen() {
       },
       onPanResponderMove: (evt) => {
         const { locationX, locationY } = evt.nativeEvent;
-        handleMouseMove(locationX - lastX, locationY - lastY);
+        mouseManager.moveMouse(locationX - lastX, locationY - lastY);
         lastX = locationX;
         lastY = locationY;
       },
       onPanResponderRelease: (evt) => {
-        handleMouseMove(0, 0);
+        mouseManager.moveMouse(0, 0);
       },
     })
   ).current;
-  const handleMouseMove = (button, dx, dy, vWheel) => {
-    mouseMove([button, dx, dy, vWheel]);
-    // const reportData = createHidReport(button, dx, dy);
-    // onReport(reportData);
-  };
+  
   const theme = useColorScheme() ?? 'light';
   const [layout, setLayout] = useState(0);
   const handleLayoutChange = () => {
@@ -81,11 +59,11 @@ export default function MouseScreen() {
       <View style={styles.container1}>
         <View 
           style={styles.mouseMove} 
-          // {...panResponder.panHandlers} 
+          {...panResponder.panHandlers} 
         />
         <View 
           style={styles.wheelMove} 
-          // {...panResponder.panHandlers} 
+          {...panResponder.panHandlers} 
         />
       </View> 
       <View style={styles.container2}>
