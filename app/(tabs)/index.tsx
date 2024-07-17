@@ -59,6 +59,8 @@ export default function MouseScreen() {
     })
   ).current;
 
+  mouseManager.init();
+  
   return (
     <ThemedView style={styles.mouseSection}>
       <View style={styles.container1}>

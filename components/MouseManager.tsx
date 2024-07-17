@@ -9,8 +9,7 @@ module.exports.setDeviceName = (name: string) => {
 }
 
 module.exports.init = () => {
-    NativeModules.BLEPeripheral.addService('00001812-0000-1000-8000-00805F9B34FB', true);
-    NativeModules.BLEPeripheral.addHIDCharacteristicToService();
+    NativeModules.BLEPeripheral.hidServiceInit();
 }
 
 module.exports.startAdvertise = () => {
@@ -25,41 +24,34 @@ module.exports.stopAdvertise = () => {
 }
 
 module.exports.moveMouse = (dx: number, dy: number) => {
-    NativeModules.BLEPeripheral.sendNotificationToDevices('00001812-0000-1000-8000-00805F9B34FB', 
-                                            '00002A4D-0000-1000-8000-00805F9B34FB', 
-                                            Array.from([buttonState, dx, dy, 0]));
+    console.log("mouse move", dx, " ", dy)
+    NativeModules.BLEPeripheral.sendMouseData(Array.from([buttonState, dx, dy, 0]));
 }
 
 module.exports.rightOnPress = () => {
+    console.log("right press")
     buttonState |= 2;
-    NativeModules.BLEPeripheral.sendNotificationToDevices('00001812-0000-1000-8000-00805F9B34FB', 
-                                            '00002A4D-0000-1000-8000-00805F9B34FB', 
-                                            Array.from([buttonState, 0, 0, 0]));
+    NativeModules.BLEPeripheral.sendMouseData(Array.from([buttonState, 0, 0, 0]));
 }
 
 module.exports.leftOnPress = () => {
+    console.log("left press")
     buttonState |= 1;
-    NativeModules.BLEPeripheral.sendNotificationToDevices('00001812-0000-1000-8000-00805F9B34FB', 
-                                            '00002A4D-0000-1000-8000-00805F9B34FB', 
-                                            Array.from([buttonState, 0, 0, 0]));
+    NativeModules.BLEPeripheral.sendMouseData(Array.from([buttonState, 0, 0, 0]));
 }
 
 module.exports.rightOnRelease = () => {
+    console.log("right release")
     buttonState &= ~2;
-    NativeModules.BLEPeripheral.sendNotificationToDevices('00001812-0000-1000-8000-00805F9B34FB', 
-                                            '00002A4D-0000-1000-8000-00805F9B34FB', 
-                                            Array.from([buttonState, 0, 0, 0]));
+    NativeModules.BLEPeripheral.sendMouseData(Array.from([buttonState, 0, 0, 0]));
 }
 
 module.exports.leftOnRelease = () => {
+    console.log("left releaase")
     buttonState &= ~1;
-    NativeModules.BLEPeripheral.sendNotificationToDevices('00001812-0000-1000-8000-00805F9B34FB', 
-                                            '00002A4D-0000-1000-8000-00805F9B34FB', 
-                                            Array.from([buttonState, 0, 0, 0]));
+    NativeModules.BLEPeripheral.sendMouseData(Array.from([buttonState, 0, 0, 0]));
 }
 
-module.exports.moveWheel = (dz) => {
-    NativeModules.BLEPeripheral.sendNotificationToDevices('00001812-0000-1000-8000-00805F9B34FB', 
-                                            '00002A4D-0000-1000-8000-00805F9B34FB', 
-                                            Array.from([buttonState, 0, 0, dz]));
+module.exports.moveWheel = (dz: number) => {
+    NativeModules.BLEPeripheral.sendMouseData(Array.from([buttonState, 0, 0, dz]));
 }

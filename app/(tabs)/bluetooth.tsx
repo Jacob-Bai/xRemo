@@ -9,8 +9,6 @@ const mouseManager = require('@/components/MouseManager');
 export default function BleScreen() {
   const [deviceName, setDeviceName] = useState<string>('My mouse');
   const [advertise, setAdvertise] = useState<boolean>(false);
-  
-  mouseManager.init();
 
   const handleAdvertise = () => {
     if (!advertise) {
