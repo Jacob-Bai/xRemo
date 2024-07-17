@@ -8,15 +8,20 @@ import {
 } from 'react-native';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Colors } from '@/constants/Colors';
+import { useThemeColor } from '@/hooks/useThemeColor';
+import { ThemedList } from '@/components/ThemedList';
 const mouseManager = require('@/components/MouseManager');
 
 export default function MouseScreen() {
   let lastX = 0;
   let lastY = 0;
+  let lastZ = 0;
+
+  const mouseElementColor = useThemeColor({}, 'listItem');
+  const [leftHandMode, setLeftHandMode] = useState(false);
+  const styles = leftHandMode? leftHandStyle : rightHandStyle; 
   
-  const panResponder = useRef(
+  const mouseMoveHandler = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onPanResponderGrant: (evt) => {
@@ -30,76 +35,76 @@ export default function MouseScreen() {
         lastX = locationX;
         lastY = locationY;
       },
-      onPanResponderRelease: (evt) => {
+      onPanResponderRelease: () => {
         mouseManager.moveMouse(0, 0);
       },
     })
   ).current;
   
-  const theme = useColorScheme() ?? 'light';
-  const [layout, setLayout] = useState(0);
-  const handleLayoutChange = () => {
-    if (layout == 2) setLayout(0);
-    else setLayout(layout+1);
-  }
-  const styles = layout==0?styles0:layout==1?styles1:styles2;
+  const mouseWheelHandler = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderGrant: (evt) => {
+        const { locationX, locationY } = evt.nativeEvent;
+        lastZ = locationY;
+      },
+      onPanResponderMove: (evt) => {
+        const { locationX, locationY } = evt.nativeEvent;
+        mouseManager.moveWheel(lastZ - locationY);
+        lastZ = locationY;
+      },
+      onPanResponderRelease: () => {
+        mouseManager.moveWheel(0);
+      },
+    })
+  ).current;
+
   return (
     <ThemedView style={styles.mouseSection}>
-      <TouchableOpacity
-        style={styles.layoutButton}
-        onPress={handleLayoutChange}
-        activeOpacity={0.8}>
-        <MaterialCommunityIcons
-          name={'table-refresh'}
-          size={20}
-          color={theme === 'light' ? Colors.light.icon : Colors.dark.icon}
-        />
-        <ThemedText type="default">{layout==0?'Right Scroll Bar':layout==1?'Left Scroll Bar':'Two Finger Scroll'}</ThemedText>
-      </TouchableOpacity>
       <View style={styles.container1}>
         <View 
-          style={styles.mouseMove} 
-          {...panResponder.panHandlers} 
+          style={[styles.mouseMove, {backgroundColor: mouseElementColor}]} 
+          {...mouseMoveHandler.panHandlers} 
         />
         <View 
-          style={styles.wheelMove} 
-          {...panResponder.panHandlers} 
+          style={[styles.wheelMove, {backgroundColor: mouseElementColor}]} 
+          {...mouseWheelHandler.panHandlers} 
         />
       </View> 
       <View style={styles.container2}>
         <TouchableOpacity
-          style={styles.button}
-          // onPressIn={() => handleMouseMove(1,0,0,0)}
-          // onPressOut={() => handleMouseMove(0,0,0,0)}
+          style={[styles.button, {backgroundColor: mouseElementColor}]}
+          onPressIn={mouseManager.rightOnPress}
+          onPressOut={mouseManager.rightOnRelease}
         >
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.button}
-          // onPressIn={() => handleMouseMove(2,0,0,0)}
-          // onPressOut={() => handleMouseMove(0,0,0,0)}
+          style={[styles.button, {backgroundColor: mouseElementColor}]}
+          onPressIn={mouseManager.leftOnPress}
+          onPressOut={mouseManager.leftOnRelease}
         >
         </TouchableOpacity>
       </View>
+      <ThemedList
+        type='Switch'
+        itemName='Left Hand Mode'
+        index={1}
+        totalItems={1}
+        handleSwitch={() => setLeftHandMode(!leftHandMode)}
+        switchValue={leftHandMode}
+      />
     </ThemedView>
   );
 }
 
 
-const styles0 = StyleSheet.create({
+const rightHandStyle = StyleSheet.create({
   mouseSection: {
     height: '100%',
     flexDirection: 'column',
     gap: 5,
     alignItems: 'center',
     justifyContent: 'flex-start',
-  },
-  layoutButton: {
-    flexDirection: 'row',
-    gap: 5,
-    width: '100%',
-    height: '5%',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   layoutText: {
     borderColor: '#000000',
@@ -141,7 +146,7 @@ const styles0 = StyleSheet.create({
   },
 });
 
-const styles1 = StyleSheet.create({
+const leftHandStyle = StyleSheet.create({
   mouseSection: {
     height: '100%',
     flexDirection: 'column',
@@ -173,57 +178,6 @@ const styles1 = StyleSheet.create({
   },
   wheelMove: {
     width: '18%',
-    height: '100%',
-    borderRadius: 10,
-    backgroundColor: '#999999',
-  },
-  container2: {
-    width: '90%',
-    height: '15%',
-    gap: 5,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  button: {
-    width: '50%',
-    height: '90%',
-    borderRadius: 10,
-    backgroundColor: '#777777',
-  },
-});
-
-const styles2 = StyleSheet.create({
-  mouseSection: {
-    height: '100%',
-    flexDirection: 'column',
-    gap: 5,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-  },
-  layoutButton: {
-    flexDirection: 'row',
-    gap: 5,
-    width: '100%',
-    height: '5%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  container1: {
-    width: '90%',
-    height: '60%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mouseMove: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 10,
-    backgroundColor: '#bbbbbb',
-  },
-  wheelMove: {
-    width: '0%',
     height: '100%',
     borderRadius: 10,
     backgroundColor: '#999999',
