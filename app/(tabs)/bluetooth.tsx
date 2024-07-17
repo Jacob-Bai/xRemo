@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
   section: {
     flexDirection: 'column',
     alignItems: 'center',
-    width: '90%',
+    width: '100%',
     justifyContent: 'flex-start',
     marginTop: 20,
   },

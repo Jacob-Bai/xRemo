@@ -102,7 +102,7 @@ export function ThemedList({ index, totalItems, itemName, textValue, switchValue
 
 const styles = StyleSheet.create({
   container: {
-    width: '100%',
+    width: '90%',
   },
   sectionName: {
     fontSize: 15,
