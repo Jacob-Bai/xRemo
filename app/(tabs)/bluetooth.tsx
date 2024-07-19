@@ -50,7 +50,7 @@ export default function BleScreen() {
         />
         <ThemedList 
           type='Title'
-          itemName='MY DEVICES'
+          itemName='CONNECTED DEVICES'
         />
       </View>
     </ThemedView>

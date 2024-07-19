@@ -123,8 +123,12 @@ class BLEPeripheral: RCTEventEmitter, CBPeripheralManagerDelegate {
       
       reportCharacteristic.descriptors = [reportReferenceDescriptor]
       hidPrimaryService.characteristics = [hidInformation, reportMapCharacteristic, reportCharacteristic, bootMouseInputCharacteristic]
+      if (manager.state != .poweredOn) {
+          alertJS("Bluetooth turned off")
+          return;
+      }
       manager.add(hidPrimaryService)
-      print("HID primary service added")
+      alertJS("HID primary service added")
       
       self.hidInformation = hidInformation
       self.reportMapCharacteristic = reportMapCharacteristic
@@ -205,12 +209,18 @@ class BLEPeripheral: RCTEventEmitter, CBPeripheralManagerDelegate {
     func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didSubscribeTo characteristic: CBCharacteristic) {
         let char = characteristic as! CBMutableCharacteristic
         print("subscribed centrals: \(String(describing: char.subscribedCentrals))")
+        if(hasListeners) {
+          sendEvent(withName: "onCentralSubscribed", body: central.identifier.uuidString)
+        }
     }
 
     // Respond to Unsubscribe events
     func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didUnsubscribeFrom characteristic: CBCharacteristic) {
         let char = characteristic as! CBMutableCharacteristic
         print("unsubscribed centrals: \(String(describing: char.subscribedCentrals))")
+      if(hasListeners) {
+        sendEvent(withName: "onCentralUnsubscribed", body: central.identifier.uuidString)
+      }
     }
 
     // Service added
@@ -230,7 +240,9 @@ class BLEPeripheral: RCTEventEmitter, CBPeripheralManagerDelegate {
         } else {
             state = peripheral.state
         }
-        alertJS("BT state change: \(state)")
+      if(hasListeners) {
+        sendEvent(withName: "onBleStatusUpdate", body: state)
+      }
     }
 
     // Advertising started
@@ -249,11 +261,12 @@ class BLEPeripheral: RCTEventEmitter, CBPeripheralManagerDelegate {
     func alertJS(_ message: Any) {
         print(message)
         if(hasListeners) {
+            print("send out warning")
             sendEvent(withName: "onWarning", body: message)
         }
     }
 
-    @objc override func supportedEvents() -> [String]! { return ["onWarning"] }
+    @objc override func supportedEvents() -> [String]! { return ["onWarning","onCentralSubscribed","onCentralUnsubscribed","onBleStatusUpdate"] }
     override func startObserving() { hasListeners = true }
     override func stopObserving() { hasListeners = false }
     @objc override static func requiresMainQueueSetup() -> Bool { return false }
@@ -264,12 +277,12 @@ class BLEPeripheral: RCTEventEmitter, CBPeripheralManagerDelegate {
 extension CBManagerState: CustomStringConvertible {
     public var description: String {
         switch self {
-        case .poweredOff: return ".poweredOff"
-        case .poweredOn: return ".poweredOn"
-        case .resetting: return ".resetting"
-        case .unauthorized: return ".unauthorized"
-        case .unsupported: return ".unsupported"
-        case .unknown: return ".unknown"
+        case .poweredOff: return "poweredOff"
+        case .poweredOn: return "poweredOn"
+        case .resetting: return "resetting"
+        case .unauthorized: return "unauthorized"
+        case .unsupported: return "unsupported"
+        case .unknown: return "unknown"
         default: return "unknown"
         }
     }

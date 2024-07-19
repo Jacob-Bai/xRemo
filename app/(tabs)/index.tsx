@@ -1,13 +1,11 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   StyleSheet,
-  useColorScheme,
   View,
   PanResponder,
   TouchableOpacity,
 } from 'react-native';
 import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { ThemedList } from '@/components/ThemedList';
 const mouseManager = require('@/components/MouseManager');
@@ -19,8 +17,8 @@ export default function MouseScreen() {
 
   const mouseElementColor = useThemeColor({}, 'listItem');
   const [leftHandMode, setLeftHandMode] = useState(false);
-  const styles = leftHandMode? leftHandStyle : rightHandStyle; 
-  
+  const styles = leftHandMode ? leftHandStyle : rightHandStyle;
+
   const mouseMoveHandler = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -40,7 +38,7 @@ export default function MouseScreen() {
       },
     })
   ).current;
-  
+
   const mouseWheelHandler = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -59,29 +57,29 @@ export default function MouseScreen() {
     })
   ).current;
 
-  mouseManager.init();
-  
+  console.log("page refresh");
+
   return (
     <ThemedView style={styles.mouseSection}>
       <View style={styles.container1}>
-        <View 
-          style={[styles.mouseMove, {backgroundColor: mouseElementColor}]} 
-          {...mouseMoveHandler.panHandlers} 
+        <View
+          style={[styles.mouseMove, { backgroundColor: mouseElementColor }]}
+          {...mouseMoveHandler.panHandlers}
         />
-        <View 
-          style={[styles.wheelMove, {backgroundColor: mouseElementColor}]} 
-          {...mouseWheelHandler.panHandlers} 
+        <View
+          style={[styles.wheelMove, { backgroundColor: mouseElementColor }]}
+          {...mouseWheelHandler.panHandlers}
         />
-      </View> 
+      </View>
       <View style={styles.container2}>
         <TouchableOpacity
-          style={[styles.button, {backgroundColor: mouseElementColor}]}
+          style={[styles.button, { backgroundColor: mouseElementColor }]}
           onPressIn={mouseManager.rightOnPress}
           onPressOut={mouseManager.rightOnRelease}
         >
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.button, {backgroundColor: mouseElementColor}]}
+          style={[styles.button, { backgroundColor: mouseElementColor }]}
           onPressIn={mouseManager.leftOnPress}
           onPressOut={mouseManager.leftOnRelease}
         >
