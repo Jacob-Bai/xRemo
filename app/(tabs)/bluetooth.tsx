@@ -1,25 +1,85 @@
 
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, ScrollView } from 'react-native';
 
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedList } from '@/components/ThemedList';
-import { useState } from 'react';
-const mouseManager = require('@/components/MouseManager');
+import {
+  connectedDevices,
+  bleSetDeviceName,
+  bleStartAdvertise,
+  bleStopAdvertise,
+  bleSetConnectedDeviceName,
+  bleSetConnectedDeviceBlocked,
+} from '@/hooks/BleManager'
+import {
+  useAppSelector,
+  useAppDispatch,
+} from "@/hooks/appHooks"
+import {
+  BleState,
+  block,
+  unblock,
+} from "@/hooks/appSlice"
 
 export default function BleScreen() {
-  const [deviceName, setDeviceName] = useState<string>('My mouse');
-  const [advertise, setAdvertise] = useState<boolean>(false);
-
-  const handleAdvertise = () => {
-    if (!advertise) {
-      mouseManager.setDeviceName(deviceName)
-      mouseManager.startAdvertise();
+  let advertise = false;
+  const bleState = useAppSelector((state) => state.app.bleState);
+  const connected = useAppSelector((state) => state.app.connected);
+  const deviceName = useAppSelector((state) => state.app.deviceName);
+  const dispatch = useAppDispatch();
+  const handleAdvertise = (newState: boolean) => {
+    if (newState) {
+      bleStartAdvertise();
     } else {
-      mouseManager.stopAdvertise();
+      bleStopAdvertise();
     }
-    setAdvertise(!advertise);
+  };
+  const handleDeviceName = (newName: string) => {
+    bleSetDeviceName(newName);
+    console.log("store new name:", newName);
   }
-  
+  if (advertise && bleState !== BleState.poweredOn) {
+    bleStopAdvertise();
+    advertise = false;
+  }
+  const devicesList = () => {
+    if (connected === 0) {
+      return; 
+    }
+    const devices: JSX.Element[] = [];
+    connectedDevices.forEach((device, id) => {
+      devices.push(
+        <View style={styles.eachDevice} key={id}>
+          <ThemedList
+            type='TextInput'
+            itemName='Device'
+            index={1}
+            totalItems={2}
+            textValue={device.name}
+            id={id}
+            onChangeIdTextInput={(id: string, newName: string) => 
+              bleSetConnectedDeviceName(id, {name: newName, blocked: device.blocked})}
+          />
+          <ThemedList
+            type='Switch'
+            itemName='Blocked'
+            index={2}
+            totalItems={2}
+            switchValue={device.blocked}
+            id={id}
+            onChangeIdSwitch={(id: string, newBlocked: boolean) => {
+              bleSetConnectedDeviceBlocked(id, {name: device.name, blocked: newBlocked});
+              dispatch(newBlocked?block():unblock());}}
+          />
+          <ThemedList 
+            type='Note'
+            itemName='Switch on Blocked to stop controlling this device'
+          />
+        </View>
+      );
+    });
+    return devices;
+  };
   return (
     <ThemedView style={[styles.bleSection]}>
       <View style={[styles.section]}>
@@ -33,7 +93,7 @@ export default function BleScreen() {
           index={1}
           totalItems={2}
           textValue={deviceName}
-          handleTextInput={setDeviceName}
+          onChangeTextInput={handleDeviceName}
           disabled={advertise}
         />
         <ThemedList
@@ -41,17 +101,24 @@ export default function BleScreen() {
           itemName='Discoverable'
           index={2}
           totalItems={2}
-          handleSwitch={handleAdvertise}
+          onChangeSwitch={handleAdvertise}
           switchValue={advertise}
         />
         <ThemedList 
           type='Note'
-          itemName='Discoverable mode will be off automatically after 60 seconds'
+          itemName="Switch on Discoverable and scan from your PC to make new connection"
         />
         <ThemedList 
           type='Title'
           itemName='CONNECTED DEVICES'
         />
+        <ScrollView 
+          contentContainerStyle={styles.deivcesSection} 
+          automaticallyAdjustKeyboardInsets={true}
+          showsVerticalScrollIndicator={false}
+        >
+          {devicesList()}
+        </ScrollView>
       </View>
     </ThemedView>
   );
@@ -71,4 +138,14 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     marginTop: 20,
   },
+  deivcesSection: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+  },
+  eachDevice: {
+    width: '100%',
+    alignItems: 'center',
+  },
+
 });

@@ -1,5 +1,12 @@
-import { View, StyleSheet, Text, TextInput, Switch } from 'react-native';
+import { 
+  View, 
+  StyleSheet, 
+  Text, 
+  TextInput, 
+  Switch,
+} from 'react-native';
 
+import { Fragment, useState } from 'react';
 import { useThemeColor } from '@/hooks/useThemeColor';
 
 type ThemedListProps = {
@@ -9,13 +16,16 @@ type ThemedListProps = {
   textValue?: string;
   switchValue?: boolean;
   disabled?: boolean;
-  type: 'TextInput' | 'Switch' | 'Title' | 'Note';
-  handleNumber?: React.Dispatch<React.SetStateAction<number>>;
-  handleTextInput?: React.Dispatch<React.SetStateAction<string>>;
-  handleSwitch?: React.Dispatch<React.SetStateAction<boolean>>;
+  id?: string;
+  type: 'TextInput' | 'Switch' | 'Title' | 'Note' ;
+  onChangeNumber?: (newNumber: number) => void;
+  onChangeTextInput?: (newText: string) => void;
+  onChangeSwitch?: (newState: boolean) => void;
+  onChangeIdTextInput?: (id: string, newName: string) => void;
+  onChangeIdSwitch?: (id: string, newState: boolean) => void;
 };
 
-export function ThemedList({ index, totalItems, itemName, textValue, switchValue, type, disabled, handleNumber, handleTextInput, handleSwitch }: ThemedListProps) {
+export function ThemedList({ index, totalItems, itemName, textValue='', switchValue=false, type, disabled = false, id='', onChangeNumber, onChangeTextInput, onChangeSwitch, onChangeIdTextInput, onChangeIdSwitch }: ThemedListProps) {
 
   const textColor = useThemeColor({},'text');
   const listItemColor = useThemeColor({}, 'listItem');
@@ -28,7 +38,6 @@ export function ThemedList({ index, totalItems, itemName, textValue, switchValue
       return undefined;
     }
     
-    borderBottomColor: 
     if (total === 1) {
       return [styles.itemBase, styles.firstItem, styles.lastItem, {backgroundColor: listItemColor}];
     } else if (index === 1) {
@@ -49,6 +58,19 @@ export function ThemedList({ index, totalItems, itemName, textValue, switchValue
         </View>
     );
   } else if (type === 'TextInput') {
+    const maxLen = 10;
+    const [backupText, setBackupText] = useState(textValue.length > maxLen ? textValue.slice(0, 10) : textValue);
+    const [text, setText] = useState(textValue.length > maxLen ? textValue.slice(0, 10) : textValue);
+    const submitTextChange = () => {
+      const newText = text.trim();
+      if (newText.length === 0) {
+        setText(backupText);
+        return;
+      }
+      onChangeTextInput?.(newText);
+      onChangeIdTextInput?.(id, newText);
+      setBackupText(newText);
+    }
     return (
       <View style={styles.container}>
       <View style={[itemStyle(index,totalItems)]}>
@@ -57,10 +79,11 @@ export function ThemedList({ index, totalItems, itemName, textValue, switchValue
         </Text>
         <TextInput
           style={[styles.itemInput, {color: listValueColor}]}
-          onChangeText={handleTextInput}
+          onChangeText={setText}
+          onEndEditing={submitTextChange}
           textAlign='right'
-          value={textValue}
-          maxLength={20}
+          value={text}
+          maxLength={maxLen}
           selectTextOnFocus={true}
           readOnly={disabled}
         />
@@ -76,6 +99,12 @@ export function ThemedList({ index, totalItems, itemName, textValue, switchValue
         </View>
     );
   } else if (type === 'Switch') {
+    const [onOff, setOnOff] = useState(switchValue);
+    const handleSwitch = (newOnOff: boolean) => {
+      onChangeSwitch?.(newOnOff);
+      onChangeIdSwitch?.(id, newOnOff);
+      setOnOff(newOnOff);
+    }
     return (
       <View style={styles.container}>
         <View style={[itemStyle(index,totalItems)]}>
@@ -87,7 +116,7 @@ export function ThemedList({ index, totalItems, itemName, textValue, switchValue
             trackColor={{false: backgroundColor, true: '#64C466'}}
             thumbColor={'#FFF'}
             onValueChange={handleSwitch}
-            value={switchValue}
+            value={onOff}
             disabled={disabled}
           />
         </View>
@@ -140,6 +169,7 @@ const styles = StyleSheet.create({
   itemInput: {
     fontSize: 16,
     paddingRight: 17,
+    width: '50%'
   },
   itemSwitch: {
     marginRight: 17,

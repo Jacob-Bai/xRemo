@@ -8,7 +8,15 @@ import {
 import { ThemedView } from '@/components/ThemedView';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { ThemedList } from '@/components/ThemedList';
-const mouseManager = require('@/components/MouseManager');
+import { 
+  bleInit,
+  bleSendLeftPress,
+  bleSendRightPress,
+  bleSendLeftRelease,
+  bleSendRightRelease,
+  bleSendMouseMove,
+  bleSendWheelMove,
+} from '@/hooks/BleManager';
 
 export default function MouseScreen() {
   let lastX = 0;
@@ -16,9 +24,10 @@ export default function MouseScreen() {
   let lastZ = 0;
 
   const mouseElementColor = useThemeColor({}, 'listItem');
-  const [leftHandMode, setLeftHandMode] = useState(false);
+  let leftHandMode = false;
   const styles = leftHandMode ? leftHandStyle : rightHandStyle;
 
+  bleInit();
   const mouseMoveHandler = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -29,12 +38,12 @@ export default function MouseScreen() {
       },
       onPanResponderMove: (evt) => {
         const { locationX, locationY } = evt.nativeEvent;
-        mouseManager.moveMouse(locationX - lastX, locationY - lastY);
+        bleSendMouseMove(locationX - lastX, locationY - lastY);
         lastX = locationX;
         lastY = locationY;
       },
       onPanResponderRelease: () => {
-        mouseManager.moveMouse(0, 0);
+        bleSendMouseMove(0, 0);
       },
     })
   ).current;
@@ -48,11 +57,11 @@ export default function MouseScreen() {
       },
       onPanResponderMove: (evt) => {
         const { locationX, locationY } = evt.nativeEvent;
-        mouseManager.moveWheel(lastZ - locationY);
+        bleSendWheelMove(lastZ - locationY);
         lastZ = locationY;
       },
       onPanResponderRelease: () => {
-        mouseManager.moveWheel(0);
+        bleSendWheelMove(0);
       },
     })
   ).current;
@@ -74,14 +83,14 @@ export default function MouseScreen() {
       <View style={styles.container2}>
         <TouchableOpacity
           style={[styles.button, { backgroundColor: mouseElementColor }]}
-          onPressIn={mouseManager.rightOnPress}
-          onPressOut={mouseManager.rightOnRelease}
+          onPressIn={bleSendRightPress}
+          onPressOut={bleSendRightRelease}
         >
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.button, { backgroundColor: mouseElementColor }]}
-          onPressIn={mouseManager.leftOnPress}
-          onPressOut={mouseManager.leftOnRelease}
+          onPressIn={bleSendLeftPress}
+          onPressOut={bleSendLeftRelease}
         >
         </TouchableOpacity>
       </View>
@@ -90,7 +99,7 @@ export default function MouseScreen() {
         itemName='Left Hand Mode'
         index={1}
         totalItems={1}
-        handleSwitch={() => setLeftHandMode(!leftHandMode)}
+        onChangeSwitch={(newState: boolean) => {leftHandMode = newState; console.log(newState)}}
         switchValue={leftHandMode}
       />
     </ThemedView>

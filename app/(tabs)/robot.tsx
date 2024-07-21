@@ -4,14 +4,36 @@ import { StyleSheet, View } from 'react-native';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedList } from '@/components/ThemedList';
 import { useState } from 'react';
+import { useAppDispatch } from '@/hooks/appHooks'
+import { robotOn, robotOff } from '@/hooks/appSlice'
+import { bleSendRandom } from '@/hooks/BleManager';
+
+var intervalId: NodeJS.Timeout;
 
 export default function robotScreen() {
-  
-  const [mouseMove, setMouseMove] = useState<boolean>(true);
-  const [mouseClick, setMouseClick] = useState<boolean>(false);
-  const [mouseScroll, setMouseScroll] = useState<boolean>(true);
-  const [autoMode, setAutoMode] = useState<boolean>(false);
-  
+  const dispatch = useAppDispatch();
+  const [startRobot, setStartRobot] = useState(false);
+  let enabledMouseMove = true;
+  let enabledMouseClick = false;
+  let enabledMouseScroll = true;
+
+  const handleStartRobot = (newState: boolean) => {
+    if (newState) {
+      dispatch(robotOn());
+      intervalId = setInterval( () => {
+        bleSendRandom(
+          enabledMouseClick,
+          enabledMouseMove,
+          enabledMouseScroll) 
+        }, 1000
+      );
+    } else { 
+      dispatch(robotOff());
+      clearInterval(intervalId);
+    }
+    setStartRobot(newState);
+  }
+
   return (
     <ThemedView style={[styles.bleSection]}>
       <View style={[styles.section]}>
@@ -24,27 +46,27 @@ export default function robotScreen() {
           itemName='Random Move'
           index={1}
           totalItems={3}
-          handleSwitch={setMouseMove}
-          switchValue={mouseMove}
-          disabled={autoMode}
+          onChangeSwitch={(newState: boolean) => enabledMouseMove = newState }
+          switchValue={enabledMouseMove}
+          disabled={startRobot}
         />
         <ThemedList
           type='Switch'
           itemName='Random Scroll'
           index={2}
           totalItems={3}
-          handleSwitch={setMouseScroll}
-          switchValue={mouseScroll}
-          disabled={autoMode}
+          onChangeSwitch={(newState: boolean) => enabledMouseScroll = newState }
+          switchValue={enabledMouseScroll}
+          disabled={startRobot}
         />
         <ThemedList
           type='Switch'
           itemName='Random Click'
           index={3}
           totalItems={3}
-          handleSwitch={setMouseClick}
-          switchValue={mouseClick}
-          disabled={autoMode}
+          onChangeSwitch={(newState: boolean) => enabledMouseClick = newState }
+          switchValue={enabledMouseClick}
+          disabled={startRobot}
         />
         <ThemedList 
           type='Note'
@@ -55,8 +77,8 @@ export default function robotScreen() {
           itemName='Start Automode'
           index={1}
           totalItems={1}
-          handleSwitch={setAutoMode}
-          switchValue={autoMode}
+          onChangeSwitch={handleStartRobot}
+          switchValue={startRobot}
         />
       </View>
     </ThemedView>
