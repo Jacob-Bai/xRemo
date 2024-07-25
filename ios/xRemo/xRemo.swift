@@ -12,6 +12,7 @@ import CoreBluetooth
 class BLEPeripheral: RCTEventEmitter, CBPeripheralManagerDelegate {
     var advertising: Bool = false
     var hasListeners: Bool = false
+  var restored : Bool = false
     var name: String = ""
     var manager: CBPeripheralManager!
     var startPromiseResolve: RCTPromiseResolveBlock?
@@ -71,7 +72,9 @@ class BLEPeripheral: RCTEventEmitter, CBPeripheralManagerDelegate {
     
     override init() {
         super.init()
-        manager = CBPeripheralManager(delegate: self, queue: nil, options: nil)
+        manager = CBPeripheralManager(delegate: self,
+                                      queue: nil, 
+                                      options: [CBPeripheralManagerOptionRestoreIdentifierKey: "com.xremo.bluetoothMouse"])
         print("BLEPeripheral initialized, advertising: \(advertising)")
     }
     
@@ -88,6 +91,7 @@ class BLEPeripheral: RCTEventEmitter, CBPeripheralManagerDelegate {
     }
   
     @objc func hidServiceInit() {
+      if (restored) {return}
       let hidPrimaryService: CBMutableService = CBMutableService(type: hidPrimaryServiceUUID, primary: true)
       
       // HID Information Characteristic
@@ -127,6 +131,7 @@ class BLEPeripheral: RCTEventEmitter, CBPeripheralManagerDelegate {
           alertJS("Bluetooth turned off")
           return;
       }
+      manager.removeAllServices();
       manager.add(hidPrimaryService)
       alertJS("HID primary service added")
       
@@ -158,19 +163,26 @@ class BLEPeripheral: RCTEventEmitter, CBPeripheralManagerDelegate {
         print("called stop")
     }
 
-    @objc func sendMouseData(_ data: [NSNumber]) {
-      guard let bootMouseInputCharacteristic = bootMouseInputCharacteristic else {
-        return
-      }
+  @objc func sendMouseData(_ data: [NSNumber], centrals: [NSString]) {
+     guard let bootMouseInputCharacteristic = bootMouseInputCharacteristic else {
+       return
+     }
       guard let reportCharacteristic = reportCharacteristic else {
         return
       }
       let byteData = Data(data.map{$0.uint8Value})
-      let success = manager.updateValue( byteData, for: reportCharacteristic, onSubscribedCentrals: nil)
-      if (!success){
-          alertJS("failed to send changed mouse data")
+      var updateCentrals: [ CBCentral ] = [];
+      if (centrals.isEmpty) {
+        manager.updateValue( byteData, for: reportCharacteristic, onSubscribedCentrals: nil)
+      } else {
+        for centralUUID in centrals {
+          if let index = reportCharacteristic.subscribedCentrals!.firstIndex(where: { $0.identifier.uuidString == centralUUID as String }) {
+            updateCentrals.append(reportCharacteristic.subscribedCentrals![index]);
+          }
+        }
+        manager.updateValue( byteData, for: reportCharacteristic, onSubscribedCentrals: updateCentrals)
       }
-      manager.updateValue( byteData, for: bootMouseInputCharacteristic, onSubscribedCentrals: nil)
+     manager.updateValue( byteData, for: bootMouseInputCharacteristic, onSubscribedCentrals: nil)
     }
     
     //// EVENTS
@@ -204,6 +216,28 @@ class BLEPeripheral: RCTEventEmitter, CBPeripheralManagerDelegate {
     //     }
     //     manager.respond(to: requests[0], withResult: .success)
     // }
+  
+  func peripheralManager(_ peripheral: CBPeripheralManager, willRestoreState dict: [String : Any]) {
+          if let services = dict[CBPeripheralManagerRestoredStateServicesKey] as? [CBMutableService] {
+            for service in services {
+              for characteristic in service.characteristics ?? [] {
+                if (characteristic.uuid.isEqual(reportCharacteristicUUID) ) {
+                  reportCharacteristic = (characteristic as! CBMutableCharacteristic)
+                  for central in reportCharacteristic?.subscribedCentrals ?? [] {
+                      sendEvent(withName: "onCentralSubscribed", body: central.identifier.uuidString)
+                  }
+                } else if (characteristic.uuid.isEqual(bootMouseInputCharacteristicUUID) ) {
+                  bootMouseInputCharacteristic = (characteristic as! CBMutableCharacteristic)
+                }
+              }
+              alertJS("Restored service: \(service)")
+            }
+            restored = true
+          }
+          if let advertisementData = dict[CBPeripheralManagerRestoredStateAdvertisementDataKey] as? [String: Any] {
+            alertJS("Restored advertisement data: \(advertisementData)")
+          }
+      }
 
     // Respond to Subscription to Notification events
     func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didSubscribeTo characteristic: CBCharacteristic) {

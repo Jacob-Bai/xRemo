@@ -30,6 +30,7 @@ RCT_EXTERN_METHOD(
 RCT_EXTERN_METHOD(stop)
 RCT_EXTERN_METHOD(
     sendMouseData: (NSArray<NSNumber *> *)data
+    centrals: (NSArray<NSString *> *)centrals
 )
 RCT_EXTERN_METHOD(requiresMainQueueSetup)
 

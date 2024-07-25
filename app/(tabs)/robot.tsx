@@ -39,7 +39,7 @@ export default function robotScreen() {
       <View style={[styles.section]}>
         <ThemedList 
           type='Title'
-          itemName='AOTUMODE SETTINGS'
+          itemName='AOTUPILOT SETTINGS'
         />
         <ThemedList
           type='Switch'
@@ -68,13 +68,9 @@ export default function robotScreen() {
           switchValue={enabledMouseClick}
           disabled={startRobot}
         />
-        <ThemedList 
-          type='Note'
-          itemName='Not recommand enabling random click, it may send an emoji to your manager'
-        />
         <ThemedList
           type='Switch'
-          itemName='Start Automode'
+          itemName='Start Autopilot'
           index={1}
           totalItems={1}
           onChangeSwitch={handleStartRobot}

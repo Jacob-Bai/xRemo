@@ -20,6 +20,8 @@ var buttonState = 0;
 var bleState = BleState.poweredOff;
 const eventEmitter = new NativeEventEmitter(NativeModules.BLEPeripheral);
 const connectedDevices = new Map();
+const unblockedCentrals= new Map();
+
 
 export { connectedDevices };
 
@@ -39,9 +41,13 @@ export const bleInit = () => {
             'onBleStatusUpdate',
             handleBleStatusUpdate
         );
+        const bleWarningListener = eventEmitter.addListener(
+            'onWarning',
+            handleBleWarning
+        );
         getDeviceName().then((storedName?: string) => {
             if (storedName) {
-                console.log("read stored name:", storedName); 
+                console.log("read stored name: ", storedName); 
                 NativeModules.BLEPeripheral.setName(storedName);
                 dispatch(setDeviceName(storedName));
             }
@@ -52,16 +58,20 @@ export const bleInit = () => {
             centralSubscribeListener.remove();
             centralUnsubscribeListener.remove();
             bleStatusUpdateListener.remove();
+            bleWarningListener.remove();
         };
     }, []);
     const handleCentralSubcribe = (id: string) => {
         connectedDevices.set(id, {name: id, blocked: false});
+        unblockedCentrals.set(id, true);
         dispatch(unblock());
         dispatch(connect());
         console.log('Subscribe:', id);
     };
     const handleCentralUnsubcribe = (id: string) => {
         connectedDevices.delete(id);
+        unblockedCentrals.delete(id);
+        dispatch(block());
         dispatch(disconnect());
         console.log('Unsubscribe:', id);
     };
@@ -72,6 +82,9 @@ export const bleInit = () => {
         }
         bleState = BleState[status as keyof typeof BleState];
         dispatch(setBleState(bleState));
+    };
+    const handleBleWarning = (msg: string) => {
+        console.log('BLE Warning:', msg);
     };
 }
 
@@ -86,29 +99,32 @@ export const bleSetConnectedDeviceName = (id: string, device: {name: string, blo
 
 export const bleSetConnectedDeviceBlocked = (id: string, device: {name: string, blocked: boolean}) => {
     connectedDevices.set(id, device);
+    if (device.blocked) unblockedCentrals.delete(id);
+    else unblockedCentrals.set(id, true);
+    console.log("central: ", id, " new-state: ", device.blocked);
 }
 
 export const bleStartAdvertise = () => {
     if (bleState === BleState.unauthorized) {
-    Alert.alert('Bluetooth Permission Denied',
-    'Please allow access in settings.')
-    return;
+        Alert.alert('Bluetooth Permission Denied',
+            'Please allow access in settings.')
+        return;
     } else if (bleState === BleState.poweredOff) {
-    Alert.alert('Bluetooth Powered Off',
-    'Please turn on bluetooth in settings.')
-    return;
+        Alert.alert('Bluetooth Powered Off',
+            'Please turn on bluetooth in settings.')
+        return;
     } else if (bleState === BleState.unsupported) {
-    Alert.alert('Bluetooth Not Avaliable',
-    'Bluetooth is not supported on this device.')
-    return;
+        Alert.alert('Bluetooth Not Avaliable',
+            'Bluetooth is not supported on this device.')
+        return;
     } else if (bleState === BleState.resetting) {
-    Alert.alert('Bluetooth Resetting',
-    'Please wait or restart application.')
-    return;
+        Alert.alert('Bluetooth Resetting',
+            'Please wait or restart application.')
+        return;
     } else if (bleState === BleState.unknown) {
-    Alert.alert('Error',
-    'Bluetooth has unknown issue.')
-    return;
+        Alert.alert('Error',
+            'Bluetooth has unknown issue.')
+        return;
     } 
     console.log("start advertising");
     NativeModules.BLEPeripheral.start()
@@ -121,37 +137,47 @@ export const bleStopAdvertise = () => {
     NativeModules.BLEPeripheral.stop();
 }
 
-export const bleSendMouseMove = (dx: number, dy: number) => {
-    console.log("mouse move", dx, " ", dy)
-    NativeModules.BLEPeripheral.sendMouseData(Array.from([buttonState, dx, dy, 0]));
+const _sendData = (button: number, x: number, y: number, z: number) => {
+    if (unblockedCentrals.size === 0) {
+        return;
+    } else if (unblockedCentrals.size === connectedDevices.size) {
+        NativeModules.BLEPeripheral.sendMouseData(Array.from([button, x, y, z]), [])
+    } else {
+        NativeModules.BLEPeripheral.sendMouseData(Array.from([button, x, y, z]), Array.from(unblockedCentrals.keys()))
+    }
+}
+
+export const bleSendMouseMove = (x: number, y: number) => {
+    // console.log("mouse move", x, " ", y)
+    _sendData(buttonState, x, y, 0);
 }
 
 export const bleSendRightPress = () => {
     console.log("right press")
     buttonState |= 2;
-    NativeModules.BLEPeripheral.sendMouseData(Array.from([buttonState, 0, 0, 0]));
+    _sendData(buttonState, 0, 0, 0);
 }
 
 export const bleSendLeftPress = () => {
     console.log("left press")
     buttonState |= 1;
-    NativeModules.BLEPeripheral.sendMouseData(Array.from([buttonState, 0, 0, 0]));
+    _sendData(buttonState, 0, 0, 0);
 }
 
 export const bleSendRightRelease = () => {
     console.log("right release")
     buttonState &= ~2;
-    NativeModules.BLEPeripheral.sendMouseData(Array.from([buttonState, 0, 0, 0]));
+    _sendData(buttonState, 0, 0, 0);
 }
 
 export const bleSendLeftRelease = () => {
     console.log("left releaase")
     buttonState &= ~1;
-    NativeModules.BLEPeripheral.sendMouseData(Array.from([buttonState, 0, 0, 0]));
+    _sendData(buttonState, 0, 0, 0);
 }
 
-export const bleSendWheelMove = (dz: number) => {
-    NativeModules.BLEPeripheral.sendMouseData(Array.from([buttonState, 0, 0, dz]));
+export const bleSendWheelMove = (z: number) => {
+    _sendData(buttonState, 0, 0, z);
 }
 
 function getRandomInt(min: number, max: number) {
@@ -165,10 +191,10 @@ export const bleSendRandom = (sendClick: boolean, sendMove: boolean, sendScroll:
     let x = getRandomInt(-178, 178);
     let y = getRandomInt(-178, 178);
     let z = getRandomInt(-178, 178);
-    NativeModules.BLEPeripheral.sendMouseData(Array.from([
-        sendClick? button : 0,
-        sendMove? x : 0, 
-        sendMove? y : 0, 
+    _sendData(
+        sendClick?  button : 0,
+        sendMove?   x : 0, 
+        sendMove?   y : 0, 
         sendScroll? z : 0
-    ]));
+    );
 }
