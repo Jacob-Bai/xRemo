@@ -75,8 +75,8 @@ export default function BleScreen() {
       );
     });
     devices.push(
-      <ThemedList 
-        id='Note'
+      <ThemedList
+        key='Note'
         type='Note'
         itemName='Switch on Blocked to stop controlling the device'
       />);
