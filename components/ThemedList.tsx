@@ -6,7 +6,7 @@ import {
   Switch,
 } from 'react-native';
 
-import { Fragment, useState } from 'react';
+import { useState } from 'react';
 import { useThemeColor } from '@/hooks/useThemeColor';
 
 type ThemedListProps = {
@@ -14,10 +14,11 @@ type ThemedListProps = {
   totalItems?: number;
   itemName: string;
   textValue?: string;
+  numValue?: number;
   switchValue?: boolean;
   disabled?: boolean;
   id?: string;
-  type: 'TextInput' | 'Switch' | 'Title' | 'Note' ;
+  type: 'TextInput' | 'Switch' | 'Title' | 'Note' | 'NumberInput';
   onChangeNumber?: (newNumber: number) => void;
   onChangeTextInput?: (newText: string) => void;
   onChangeSwitch?: (newState: boolean) => void;
@@ -25,7 +26,7 @@ type ThemedListProps = {
   onChangeIdSwitch?: (id: string, newState: boolean) => void;
 };
 
-export function ThemedList({ index, totalItems, itemName, textValue='', switchValue=false, type, disabled = false, id='', onChangeNumber, onChangeTextInput, onChangeSwitch, onChangeIdTextInput, onChangeIdSwitch }: ThemedListProps) {
+export function ThemedList({ index, totalItems, itemName, textValue='', numValue=0, switchValue=false, type, disabled = false, id='', onChangeNumber, onChangeTextInput, onChangeSwitch, onChangeIdTextInput, onChangeIdSwitch }: ThemedListProps) {
 
   const textColor = useThemeColor({},'text');
   const listItemColor = useThemeColor({}, 'listItem');
@@ -59,17 +60,16 @@ export function ThemedList({ index, totalItems, itemName, textValue='', switchVa
     );
   } else if (type === 'TextInput') {
     const maxLen = 10;
-    const [backupText, setBackupText] = useState(textValue.length > maxLen ? textValue.slice(0, 10) : textValue);
-    const [text, setText] = useState(textValue.length > maxLen ? textValue.slice(0, 10) : textValue);
+    const [backupText, setBackupText] = useState(textValue.length > maxLen ? textValue.slice(0, maxLen) : textValue);
+    const [text, setText] = useState(textValue.length > maxLen ? textValue.slice(0, maxLen) : textValue);
     const submitTextChange = () => {
-      const newText = text.replace(/\s/g, "");
-      if (newText.length === 0) {
+      if (text.length === 0) {
         setText(backupText);
         return;
       }
-      onChangeTextInput?.(newText);
-      onChangeIdTextInput?.(id, newText);
-      setBackupText(newText);
+      onChangeTextInput?.(text);
+      onChangeIdTextInput?.(id, text);
+      setBackupText(text);
     }
     return (
       <View style={styles.container}>
@@ -79,13 +79,50 @@ export function ThemedList({ index, totalItems, itemName, textValue='', switchVa
         </Text>
         <TextInput
           style={[styles.itemInput, {color: listValueColor}]}
-          onChangeText={setText}
+          onChangeText={(text) => setText(text.replace(/\s/g, ""))}
           onEndEditing={submitTextChange}
           textAlign='right'
           value={text}
           maxLength={maxLen}
           selectTextOnFocus={true}
           readOnly={disabled}
+          inputMode='text'
+          returnKeyType='done'
+        />
+      </View>
+    </View>
+    );
+  } else if (type === 'NumberInput') {
+    const maxLen = 3;
+    const [backupNum, setBackupNum] = useState(numValue.toString());
+    const [number, setNumber] = useState(numValue.toString());
+    const submitNumChange = () => {
+      const newNumber = Number(number);
+      if (newNumber < 0) {
+        setNumber(backupNum);
+        return;
+      }
+      onChangeNumber?.(newNumber);
+      setBackupNum(number);
+    }
+    return (
+      <View style={styles.container}>
+      <View style={[itemStyle(index,totalItems)]}>
+        <Text style={[styles.itemName, {color: textColor}]}>
+          {itemName}
+        </Text>
+        <TextInput
+          style={[styles.itemInput, {color: listValueColor}]}
+          onChangeText={setNumber}
+          onEndEditing={submitNumChange}
+          textAlign='right'
+          value={number}
+          maxLength={maxLen}
+          selectTextOnFocus={true}
+          readOnly={disabled}
+          inputMode='numeric'
+          keyboardType='numeric'
+          returnKeyType='done'
         />
       </View>
     </View>
@@ -134,12 +171,13 @@ const styles = StyleSheet.create({
     width: '90%',
   },
   sectionName: {
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: 'System',
     width: '100%',
     textAlign: 'left',
     paddingLeft: 17,
-    marginBottom: 10,
+    marginBottom: 5,
+    marginTop: 20,
   },
   itemBase: {
     width: '100%',
@@ -159,7 +197,7 @@ const styles = StyleSheet.create({
   lastItem: {
     borderBottomLeftRadius: 10,
     borderBottomRightRadius: 10,
-    marginBottom: 10,
+    marginBottom: 5,
   },
   itemName: {
     paddingLeft: 17,
@@ -167,7 +205,7 @@ const styles = StyleSheet.create({
     fontFamily: 'System',
   },
   itemInput: {
-    fontSize: 16,
+    fontSize: 17,
     paddingRight: 17,
     width: '50%'
   },
@@ -181,6 +219,6 @@ const styles = StyleSheet.create({
     textAlign: 'left',
     paddingLeft: 17,
     paddingRight: 17,
-    marginBottom: 30,
+    marginBottom: 10,
   },
 });
