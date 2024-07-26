@@ -62,7 +62,7 @@ export function ThemedList({ index, totalItems, itemName, textValue='', switchVa
     const [backupText, setBackupText] = useState(textValue.length > maxLen ? textValue.slice(0, 10) : textValue);
     const [text, setText] = useState(textValue.length > maxLen ? textValue.slice(0, 10) : textValue);
     const submitTextChange = () => {
-      const newText = text.trim();
+      const newText = text.replace(/\s/g, "");
       if (newText.length === 0) {
         setText(backupText);
         return;
