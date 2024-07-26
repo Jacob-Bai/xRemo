@@ -71,13 +71,15 @@ export default function BleScreen() {
               bleSetConnectedDeviceBlocked(id, {name: device.name, blocked: newBlocked});
               dispatch(newBlocked?block():unblock());}}
           />
-          <ThemedList 
-            type='Note'
-            itemName='Switch on Blocked to stop controlling this device'
-          />
         </View>
       );
     });
+    devices.push(
+      <ThemedList 
+        id='Note'
+        type='Note'
+        itemName='Switch on Blocked to stop controlling the device'
+      />);
     return devices;
   };
   return (
@@ -116,6 +118,7 @@ export default function BleScreen() {
           contentContainerStyle={styles.deivcesSection} 
           automaticallyAdjustKeyboardInsets={true}
           showsVerticalScrollIndicator={false}
+          alwaysBounceVertical={false}
         >
           {devicesList()}
         </ScrollView>
@@ -126,10 +129,7 @@ export default function BleScreen() {
 
 const styles = StyleSheet.create({
   bleSection: {
-    height: '100%',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
+    height: '75%',
   },
   section: {
     flexDirection: 'column',
@@ -139,7 +139,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   deivcesSection: {
-    flex: 1,
     width: '100%',
     alignItems: 'center',
   },
@@ -147,5 +146,4 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
   },
-
 });
