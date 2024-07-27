@@ -108,7 +108,7 @@ export default function robotScreen() {
         />
         <ThemedList 
           type='Note'
-          itemName='Allow autopilot running in background'
+          itemName='Allow autopilot running when App in background'
         />
         <ThemedList
           type='NumberInput'
