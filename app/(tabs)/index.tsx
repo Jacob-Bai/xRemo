@@ -1,8 +1,7 @@
-import React, { useRef } from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   View,
-  PanResponder,
   TouchableOpacity,
 } from 'react-native';
 import { ThemedView } from '@/components/ThemedView';
@@ -16,87 +15,55 @@ import {
   bleSendMouseMove,
   bleSendWheelMove,
 } from '@/hooks/BleManager';
+import { GestureDetector, Gesture, GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export default function MouseScreen() {
-  let lastX = 0;
-  let lastY = 0;
-  let lastZ = 0;
-
   const mouseElementColor = useThemeColor({}, 'listItem');
-  let leftHandMode = false;
+  const leftButtonGesture = Gesture.Pan();
+  const rightButtonGesture = Gesture.Pan();
+  const moveGesture = Gesture.Pan();
+  const scrollGesture = Gesture.Pan();
+
+  leftButtonGesture.onTouchesDown(bleSendLeftPress);
+  leftButtonGesture.onTouchesUp(bleSendLeftRelease);  
+  rightButtonGesture.onTouchesDown(bleSendRightPress);
+  rightButtonGesture.onTouchesUp(bleSendRightRelease);
+
+  moveGesture.onUpdate((event) => {
+    bleSendMouseMove(event.velocityX, event.velocityY);
+  })
+
+  scrollGesture.onUpdate((event) => {
+    bleSendWheelMove(event.velocityY);
+  })
+
+  const [leftHandMode, setLeftHandMode] = useState(false);
   const styles = leftHandMode ? leftHandStyle : rightHandStyle;
-  const mouseMoveHandler = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: (evt) => {
-        const { locationX, locationY } = evt.nativeEvent;
-        lastX = locationX;
-        lastY = locationY;
-      },
-      onPanResponderMove: (evt) => {
-        const { locationX, locationY } = evt.nativeEvent;
-        bleSendMouseMove(locationX - lastX, locationY - lastY);
-        lastX = locationX;
-        lastY = locationY;
-      },
-      onPanResponderRelease: () => {
-        bleSendMouseMove(0, 0);
-      },
-    })
-  ).current;
-
-  const mouseWheelHandler = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: (evt) => {
-        const { locationX, locationY } = evt.nativeEvent;
-        lastZ = locationY;
-      },
-      onPanResponderMove: (evt) => {
-        const { locationX, locationY } = evt.nativeEvent;
-        bleSendWheelMove(lastZ - locationY);
-        lastZ = locationY;
-      },
-      onPanResponderRelease: () => {
-        bleSendWheelMove(0);
-      },
-    })
-  ).current;
-
-  console.log("page refresh");
 
   return (
     <ThemedView style={styles.mouseSection}>
-      <View style={styles.container1}>
-        <View
-          style={[styles.mouseMove, { backgroundColor: mouseElementColor }]}
-          {...mouseMoveHandler.panHandlers}
-        />
-        <View
-          style={[styles.wheelMove, { backgroundColor: mouseElementColor }]}
-          {...mouseWheelHandler.panHandlers}
-        />
-      </View>
-      <View style={styles.container2}>
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: mouseElementColor }]}
-          onPressIn={bleSendRightPress}
-          onPressOut={bleSendRightRelease}
-        >
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: mouseElementColor }]}
-          onPressIn={bleSendLeftPress}
-          onPressOut={bleSendLeftRelease}
-        >
-        </TouchableOpacity>
-      </View>
+      <GestureHandlerRootView style={styles.container1}>
+        <GestureDetector gesture={moveGesture}>
+          <View style={[styles.mouseMove, { backgroundColor: mouseElementColor }]}/>
+        </GestureDetector>
+        <GestureDetector gesture={scrollGesture}>
+          <View style={[styles.wheelMove, { backgroundColor: mouseElementColor }]} />
+        </GestureDetector>
+      </GestureHandlerRootView>
+      <GestureHandlerRootView style={styles.container2}>
+        <GestureDetector gesture={leftButtonGesture}>
+          <View style={[styles.button, { backgroundColor: mouseElementColor }]} />
+        </GestureDetector>
+        <GestureDetector gesture={rightButtonGesture}>
+          <View style={[styles.button, { backgroundColor: mouseElementColor }]} />
+        </GestureDetector>
+      </GestureHandlerRootView>
       <ThemedList
         type='Switch'
         itemName='Left Hand Mode'
         index={1}
         totalItems={1}
-        onChangeSwitch={(newState: boolean) => {leftHandMode = newState; console.log(newState)}}
+        onChangeSwitch={setLeftHandMode}
         switchValue={leftHandMode}
       />
     </ThemedView>
