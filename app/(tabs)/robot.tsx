@@ -4,32 +4,57 @@ import { StyleSheet, View } from 'react-native';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedList } from '@/components/ThemedList';
 import { useState } from 'react';
-import { useAppDispatch } from '@/hooks/appHooks'
+import { useAppSelector, useAppDispatch } from '@/hooks/appHooks'
 import { robotOn, robotOff } from '@/hooks/appSlice'
 import { bleSendRandom } from '@/hooks/BleManager';
+import BackgroundTimer from 'react-native-background-timer';
+import { 
+  getRandomClick, 
+  setRandomClick,
+  getRandomMove,
+  setRandomMove,
+  getRandomScroll,
+  setRandomScroll,
+  getBackgroundMode,
+  setBackgroundMode,
+  getStopTimer,
+  setStopTimer,
+  getUpdateFreq,
+  setUpdateFreq,
+ } from '@/hooks/storage'
 
 var intervalId: NodeJS.Timeout;
 
 export default function robotScreen() {
+
   const dispatch = useAppDispatch();
   const [startRobot, setStartRobot] = useState(false);
-  let enabledMouseMove = true;
-  let enabledMouseClick = false;
-  let enabledMouseScroll = true;
+  const storageInit = useAppSelector((state) => state.app.storageReady);
+
+  let proMode = false;
 
   const handleStartRobot = (newState: boolean) => {
+    const freq = getUpdateFreq()===0? 250:getUpdateFreq();
     if (newState) {
       dispatch(robotOn());
-      intervalId = setInterval( () => {
-        bleSendRandom(
-          enabledMouseClick,
-          enabledMouseMove,
-          enabledMouseScroll) 
-        }, 1000
-      );
+      if (!proMode)
+        intervalId = setInterval(() => {
+          bleSendRandom(
+            getRandomClick(),
+            getRandomMove(),
+            getRandomScroll())
+        }, freq);
+      else 
+        BackgroundTimer.runBackgroundTimer(() => {
+          bleSendRandom(
+            getRandomClick(),
+            getRandomMove(),
+            getRandomScroll())
+        }, freq);
     } else { 
       dispatch(robotOff());
       clearInterval(intervalId);
+      BackgroundTimer.stopBackgroundTimer();
     }
     setStartRobot(newState);
   }
@@ -39,15 +64,15 @@ export default function robotScreen() {
       <View style={[styles.section]}>
         <ThemedList 
           type='Title'
-          itemName='AOTUPILOT SETTINGS'
+          itemName='BASIC SETTINGS'
         />
         <ThemedList
           type='Switch'
           itemName='Random Move'
           index={1}
           totalItems={3}
-          onChangeSwitch={(newState: boolean) => enabledMouseMove = newState }
-          switchValue={enabledMouseMove}
+          onChangeSwitch={setRandomMove}
+          switchValue={getRandomMove()}
           disabled={startRobot}
         />
         <ThemedList
@@ -55,8 +80,8 @@ export default function robotScreen() {
           itemName='Random Scroll'
           index={2}
           totalItems={3}
-          onChangeSwitch={(newState: boolean) => enabledMouseScroll = newState }
-          switchValue={enabledMouseScroll}
+          onChangeSwitch={setRandomScroll}
+          switchValue={getRandomScroll()}
           disabled={startRobot}
         />
         <ThemedList
@@ -64,9 +89,56 @@ export default function robotScreen() {
           itemName='Random Click'
           index={3}
           totalItems={3}
-          onChangeSwitch={(newState: boolean) => enabledMouseClick = newState }
-          switchValue={enabledMouseClick}
+          onChangeSwitch={setRandomClick}
+          switchValue={getRandomClick()}
           disabled={startRobot}
+        />
+        <ThemedList 
+          type='Title'
+          itemName='ADVANCED SETTINGS'
+        />
+        <ThemedList
+          type='Switch'
+          itemName='Background Mode'
+          index={1}
+          totalItems={1}
+          onChangeSwitch={setBackgroundMode}
+          switchValue={getBackgroundMode()}
+          disabled={startRobot}
+        />
+        <ThemedList 
+          type='Note'
+          itemName='Allow autopilot running in background'
+        />
+        <ThemedList
+          type='NumberInput'
+          itemName='Timer'
+          index={1}
+          totalItems={1}
+          onChangeNumber={setStopTimer}
+          numValue={getStopTimer()}
+          disabled={startRobot}
+        />
+        <ThemedList 
+          type='Note'
+          itemName='Stop autopilot after X minutes, 0 for non-stop'
+        />
+        <ThemedList
+          type='NumberInput'
+          itemName='Frequency'
+          index={1}
+          totalItems={1}
+          onChangeNumber={setUpdateFreq}
+          numValue={getUpdateFreq()}
+          disabled={startRobot}
+        />
+        <ThemedList 
+          type='Note'
+          itemName='Send random actions every X seconds'
+        />
+        <ThemedList 
+          type='Title'
+          itemName='AUTOPILOT'
         />
         <ThemedList
           type='Switch'
@@ -93,6 +165,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     justifyContent: 'flex-start',
-    marginTop: 20,
   },
 });

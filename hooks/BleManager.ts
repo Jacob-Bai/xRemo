@@ -2,77 +2,29 @@
 
 var { NativeModules, NativeEventEmitter } = require('react-native');
 import { Alert } from 'react-native';
-import { useEffect } from 'react';
-
-import { useAppDispatch } from '@/hooks/appHooks'
+import { BleState } from '@/hooks/appSlice';
 import { 
-    BleState, 
-    setBleState, 
-    connect, 
-    disconnect,
-    block,
-    unblock,
-    setDeviceName,
-} from '@/hooks/appSlice'
-import { getDeviceName, storeDeviceName } from '@/hooks/storage';
+    Central, 
+    getBleName, 
+    getKnownCentral, 
+    setKnownCentral,
+} from './storage';
 
 var buttonState = 0;
 var bleState = BleState.poweredOff;
 const eventEmitter = new NativeEventEmitter(NativeModules.BLEPeripheral);
-const connectedDevices = new Map();
-const unblockedCentrals= new Map();
+let connectedCentrals: Array<Central> = [];
+let unblockedCentrals: Array<string> = [];
 
-
-export { connectedDevices };
-
-export const bleInit = () => {
-    const dispatch = useAppDispatch();
-
-    useEffect(() => {
-        const centralSubscribeListener = eventEmitter.addListener(
-            'onCentralSubscribed',
-            handleCentralSubcribe
-        );
-        const centralUnsubscribeListener = eventEmitter.addListener(
-            'onCentralUnsubscribed',
-            handleCentralUnsubcribe
-        );
-        const bleStatusUpdateListener = eventEmitter.addListener(
-            'onBleStatusUpdate',
-            handleBleStatusUpdate
-        );
-        const bleWarningListener = eventEmitter.addListener(
-            'onWarning',
-            handleBleWarning
-        );
-        getDeviceName().then((storedName?: string) => {
-            if (storedName) {
-                console.log("read stored name: ", storedName); 
-                NativeModules.BLEPeripheral.setName(storedName);
-                dispatch(setDeviceName(storedName));
-            }
-        });
-        console.log("ble init");
-
-        return () => {
-            centralSubscribeListener.remove();
-            centralUnsubscribeListener.remove();
-            bleStatusUpdateListener.remove();
-            bleWarningListener.remove();
-        };
-    }, []);
+export const bleInit = (onConnect: () => void, onDisconnect: () => void, onStatusChange: (newState: BleState) => void) => {
     const handleCentralSubcribe = (id: string) => {
-        connectedDevices.set(id, {name: id, blocked: false});
-        unblockedCentrals.set(id, true);
-        dispatch(unblock());
-        dispatch(connect());
+        centralConnect(id);
+        onConnect();
         console.log('Subscribe:', id);
     };
     const handleCentralUnsubcribe = (id: string) => {
-        connectedDevices.delete(id);
-        unblockedCentrals.delete(id);
-        dispatch(block());
-        dispatch(disconnect());
+        centralDisconnect(id);
+        onDisconnect();
         console.log('Unsubscribe:', id);
     };
     const handleBleStatusUpdate = (status: string) => {
@@ -81,27 +33,97 @@ export const bleInit = () => {
             NativeModules.BLEPeripheral.hidServiceInit();
         }
         bleState = BleState[status as keyof typeof BleState];
-        dispatch(setBleState(bleState));
+        onStatusChange(bleState);
     };
     const handleBleWarning = (msg: string) => {
         console.log('BLE Warning:', msg);
     };
+
+    eventEmitter.addListener(
+        'onCentralSubscribed',
+        handleCentralSubcribe
+    );
+    eventEmitter.addListener(
+        'onCentralUnsubscribed',
+        handleCentralUnsubcribe
+    );
+    eventEmitter.addListener(
+        'onBleStatusUpdate',
+        handleBleStatusUpdate
+    );
+    eventEmitter.addListener(
+        'onWarning',
+        handleBleWarning
+    );
+    console.log("ble init");
+
 }
 
-export const bleSetDeviceName = (name: string) => {
-    NativeModules.BLEPeripheral.setName(name);
-    storeDeviceName(name);
+const blockCentral = (id: string) => {
+    unblockedCentrals = unblockedCentrals.filter(centralId => centralId !== id);
 }
 
-export const bleSetConnectedDeviceName = (id: string, device: {name: string, blocked: boolean}) => {
-    connectedDevices.set(id, device);
+const unblockCentral = (id: string) => {
+    unblockedCentrals.push(id);
 }
 
-export const bleSetConnectedDeviceBlocked = (id: string, device: {name: string, blocked: boolean}) => {
-    connectedDevices.set(id, device);
-    if (device.blocked) unblockedCentrals.delete(id);
-    else unblockedCentrals.set(id, true);
-    console.log("central: ", id, " new-state: ", device.blocked);
+const centralConnect = (id: string) => {
+    let knownCentral = getKnownCentral(id);
+    connectedCentrals.push(knownCentral);
+    if (!knownCentral.blocked) unblockCentral(id);
+}
+
+const centralDisconnect = (id: string) => {
+    connectedCentrals = connectedCentrals.filter(central => central.id !== id);
+    blockCentral(id);
+}
+
+export const anyUnblockedCentrals = () => {
+    return unblockedCentrals.length > 0;
+}
+
+export const getConnectedCentrals = () => {
+    return connectedCentrals;
+}
+
+export const bleUpdateConnectedKnownCentrals = () => {
+    for (const central of connectedCentrals) {
+        let knownCentral = getKnownCentral(central.id);
+        if (central.blocked != knownCentral.blocked) {
+            if (knownCentral.blocked) {
+                blockCentral(knownCentral.id);
+            } else {
+                unblockCentral(knownCentral.id);
+            }
+            central.blocked = knownCentral.blocked;
+        }
+        central.name = knownCentral.name;
+    }
+}
+
+export const bleSetConnectedCentralName = (id: string, name: string) => {
+    for (const connectedCentral of connectedCentrals) {
+        if (connectedCentral.id === id) {
+            connectedCentral.name = name;
+            setKnownCentral(connectedCentral);
+            return;
+        }
+    }
+}
+
+export const bleSetConnectedCentralBlocked = (id: string, blocked: boolean) => {
+    for (const connectedCentral of connectedCentrals) {
+        if (connectedCentral.id === id) {
+            if (blocked) {
+                blockCentral(id);
+            } else {
+                unblockCentral(id);
+            }
+            connectedCentral.blocked = blocked;
+            setKnownCentral(connectedCentral);
+            return;
+        }
+    }
 }
 
 export const bleStartAdvertise = () => {
@@ -127,6 +149,7 @@ export const bleStartAdvertise = () => {
         return;
     } 
     console.log("start advertising");
+    NativeModules.BLEPeripheral.setName(getBleName());
     NativeModules.BLEPeripheral.start()
         .then((res: string) => { console.log(res)})
         .catch((error: Error) => { console.log(error)});
@@ -138,12 +161,13 @@ export const bleStopAdvertise = () => {
 }
 
 const _sendData = (button: number, x: number, y: number, z: number) => {
-    if (unblockedCentrals.size === 0) {
+    if (unblockedCentrals.length === 0) {
         return;
-    } else if (unblockedCentrals.size === connectedDevices.size) {
+    } else if (unblockedCentrals.length === connectedCentrals.length) {
+        // update all device, no need calculation in swift
         NativeModules.BLEPeripheral.sendMouseData(Array.from([button, x, y, z]), [])
     } else {
-        NativeModules.BLEPeripheral.sendMouseData(Array.from([button, x, y, z]), Array.from(unblockedCentrals.keys()))
+        NativeModules.BLEPeripheral.sendMouseData(Array.from([button, x, y, z]), unblockedCentrals)
     }
 }
 

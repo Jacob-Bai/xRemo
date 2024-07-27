@@ -84,10 +84,10 @@ export function ThemedList({ index, totalItems, itemName, textValue='', numValue
           textAlign='right'
           value={text}
           maxLength={maxLen}
-          selectTextOnFocus={true}
           readOnly={disabled}
           inputMode='text'
           returnKeyType='done'
+          clearButtonMode='always'
         />
       </View>
     </View>
@@ -118,11 +118,11 @@ export function ThemedList({ index, totalItems, itemName, textValue='', numValue
           textAlign='right'
           value={number}
           maxLength={maxLen}
-          selectTextOnFocus={true}
           readOnly={disabled}
           inputMode='numeric'
           keyboardType='numeric'
           returnKeyType='done'
+          clearButtonMode='always'
         />
       </View>
     </View>

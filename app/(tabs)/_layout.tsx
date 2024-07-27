@@ -2,31 +2,42 @@ import { Tabs } from 'expo-router';
 import { TabBarIcon } from '@/components/navigation/TabBarIcon';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { useAppSelector } from '@/hooks/appHooks';
-import { BleState } from '@/hooks/appSlice';
-import { connectedDevices } from '@/hooks/BleManager';
+import { useAppSelector, useAppDispatch } from '@/hooks/appHooks';
+import { BleState, connect, disconnect, setBleState, storageUpdate } from '@/hooks/appSlice';
+import { anyUnblockedCentrals, bleUpdateConnectedKnownCentrals } from '@/hooks/BleManager';
+import { storageInit } from '@/hooks/storage';
+import { bleInit } from '@/hooks/BleManager';
+import { useEffect } from 'react';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const connected = useAppSelector((state) => state.app.connected);
   const unblocked = useAppSelector((state) => state.app.unblocked);
   const bleState = useAppSelector((state) => state.app.bleState);
   const robotMode = useAppSelector((state) => state.app.robotMode);
+  const storageReady = useAppSelector((state) => state.app.storageReady);
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    storageInit(() => {
+      bleUpdateConnectedKnownCentrals();
+      dispatch(storageUpdate())
+    });
+    bleInit(
+      () => dispatch(connect()),
+      () => dispatch(disconnect()),
+      (newState: BleState) => dispatch(setBleState(newState))
+    );
+  }, []);
 
   const getRobotIcon = () => {
     if(robotMode) return "robot-outline";
     else return "robot-off-outline";
   }
-  const connection = () => {
-    for (const device of connectedDevices.values()) {
-      if (device.blocked === false) {
-        return true;
-      }
-    }
-  }
+  
   const getBluetoothIcon = () => {
     if (bleState === BleState.poweredOn) {
-      console.log(unblocked);
-      if (unblocked > 0) return "bluetooth-transfer";
+      if (anyUnblockedCentrals()) return "bluetooth-transfer";
       return "bluetooth";
     }
     return "bluetooth-off";

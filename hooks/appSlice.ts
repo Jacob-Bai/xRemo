@@ -14,7 +14,7 @@ interface appState {
   bleState: BleState,
   connected: number,
   unblocked: number,
-  deviceName: string,
+  storageReady: boolean,
 }
 
 // Define the initial state using that type
@@ -23,7 +23,7 @@ const initialState: appState = {
   bleState: BleState.unknown,
   connected: 0,
   unblocked: 0,
-  deviceName: 'My Mouse',
+  storageReady: false,
 }
 
 export const appSlice = createSlice({
@@ -52,11 +52,11 @@ export const appSlice = createSlice({
     robotOff: (state) => {
       state.robotMode = false
     },
-    setDeviceName: (state, action: PayloadAction<string>) => {
-      state.deviceName = action.payload
+    storageUpdate: (state) => {
+      state.storageReady = true
     },
   },
 })
 
-export const { connect, disconnect, block, unblock, setBleState, robotOn, robotOff, setDeviceName } = appSlice.actions
+export const { connect, disconnect, block, unblock, setBleState, robotOn, robotOff, storageUpdate } = appSlice.actions
 export default appSlice.reducer

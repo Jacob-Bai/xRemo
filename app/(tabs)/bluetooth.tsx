@@ -4,29 +4,30 @@ import { StyleSheet, View, ScrollView } from 'react-native';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedList } from '@/components/ThemedList';
 import {
-  connectedDevices,
-  bleSetDeviceName,
+  getConnectedCentrals,
   bleStartAdvertise,
   bleStopAdvertise,
-  bleSetConnectedDeviceName,
-  bleSetConnectedDeviceBlocked,
+  bleSetConnectedCentralName,
+  bleSetConnectedCentralBlocked,
 } from '@/hooks/BleManager'
 import {
   useAppSelector,
   useAppDispatch,
 } from "@/hooks/appHooks"
 import {
-  BleState,
   block,
   unblock,
 } from "@/hooks/appSlice"
+import { getBleName, setBleName } from '@/hooks/storage'
 
 export default function BleScreen() {
   let advertise = false;
-  const bleState = useAppSelector((state) => state.app.bleState);
+  // const bleState = useAppSelector((state) => state.app.bleState);
   const connected = useAppSelector((state) => state.app.connected);
-  const deviceName = useAppSelector((state) => state.app.deviceName);
+  const storageInit = useAppSelector((state) => state.app.storageReady);
+
   const dispatch = useAppDispatch();
+
   const handleAdvertise = (newState: boolean) => {
     if (newState) {
       bleStartAdvertise();
@@ -34,42 +35,41 @@ export default function BleScreen() {
       bleStopAdvertise();
     }
   };
-  const handleDeviceName = (newName: string) => {
-    bleSetDeviceName(newName);
+
+  const handleBleName = (newName: string) => {
+    setBleName(newName);
     console.log("store new name:", newName);
   }
-  if (advertise && bleState !== BleState.poweredOn) {
-    bleStopAdvertise();
-    advertise = false;
-  }
+  
   const devicesList = () => {
     if (connected === 0) {
       return; 
     }
+    const connectedCentrals = getConnectedCentrals();
     const devices: JSX.Element[] = [];
-    connectedDevices.forEach((device, id) => {
+    connectedCentrals.forEach((central) => {
       devices.push(
-        <View style={styles.eachDevice} key={id}>
+        <View style={styles.eachDevice} key={central.id}>
           <ThemedList
             type='TextInput'
             itemName='Device'
             index={1}
             totalItems={2}
-            textValue={device.name}
-            id={id}
-            onChangeIdTextInput={(id: string, newName: string) => 
-              bleSetConnectedDeviceName(id, {name: newName, blocked: device.blocked})}
+            textValue={central.name}
+            id={central.id}
+            onChangeIdTextInput={bleSetConnectedCentralName}
           />
           <ThemedList
             type='Switch'
             itemName='Blocked'
             index={2}
             totalItems={2}
-            switchValue={device.blocked}
-            id={id}
+            switchValue={central.blocked}
+            id={central.id}
             onChangeIdSwitch={(id: string, newBlocked: boolean) => {
-              bleSetConnectedDeviceBlocked(id, {name: device.name, blocked: newBlocked});
-              dispatch(newBlocked?block():unblock());}}
+              bleSetConnectedCentralBlocked(id, newBlocked);
+              dispatch(newBlocked?block():unblock());
+            }}
           />
         </View>
       );
@@ -78,7 +78,7 @@ export default function BleScreen() {
       <ThemedList
         key='Note'
         type='Note'
-        itemName='Switch on Blocked to stop controlling the device'
+        itemName='Switch on Blocked to stop controlling a device'
       />);
     return devices;
   };
@@ -94,8 +94,8 @@ export default function BleScreen() {
           itemName='Device Name'
           index={1}
           totalItems={2}
-          textValue={deviceName}
-          onChangeTextInput={handleDeviceName}
+          textValue={getBleName()}
+          onChangeTextInput={handleBleName}
           disabled={advertise}
         />
         <ThemedList
@@ -136,7 +136,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     justifyContent: 'flex-start',
-    marginTop: 20,
   },
   deivcesSection: {
     width: '100%',

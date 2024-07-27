@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -8,8 +8,7 @@ import {
 import { ThemedView } from '@/components/ThemedView';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { ThemedList } from '@/components/ThemedList';
-import { 
-  bleInit,
+import {
   bleSendLeftPress,
   bleSendRightPress,
   bleSendLeftRelease,
@@ -26,8 +25,6 @@ export default function MouseScreen() {
   const mouseElementColor = useThemeColor({}, 'listItem');
   let leftHandMode = false;
   const styles = leftHandMode ? leftHandStyle : rightHandStyle;
-
-  bleInit();
   const mouseMoveHandler = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
