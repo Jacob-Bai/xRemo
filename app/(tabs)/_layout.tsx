@@ -70,7 +70,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="bluetooth"
         options={{
-          title: '',
+          title: connected.toString(),
           tabBarIcon: ({ color }) => (
             <TabBarIcon name={getBluetoothIcon()} color={color} /> // bluetooth-off bluetooth-audio bluetooth-transfer
           ),
