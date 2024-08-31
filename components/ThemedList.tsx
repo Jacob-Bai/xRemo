@@ -98,7 +98,7 @@ export function ThemedList({ index, totalItems, itemName, textValue='', numValue
     const [number, setNumber] = useState(numValue.toString());
     const submitNumChange = () => {
       const newNumber = Number(number);
-      if (newNumber < 0) {
+      if (number.length === 0) {
         setNumber(backupNum);
         return;
       }
