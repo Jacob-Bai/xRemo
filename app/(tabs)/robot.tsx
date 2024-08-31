@@ -23,38 +23,49 @@ import {
   setUpdateFreq,
  } from '@/hooks/storage'
 
-var intervalId: NodeJS.Timeout;
+var updateIntervalId: NodeJS.Timeout;
+var stopIntervalId: NodeJS.Timeout;
 
 export default function robotScreen() {
-
   const dispatch = useAppDispatch();
   const [startRobot, setStartRobot] = useState(false);
   const storageInit = useAppSelector((state) => state.app.storageReady);
-
-  let proMode = false;
-
+  
   const handleStartRobot = (newState: boolean) => {
-    const freq = getUpdateFreq()===0? 250:getUpdateFreq();
+    const freq = getUpdateFreq() === 0? 250 : getUpdateFreq()*1000; //seconds
+    const stop = getStopTimer() * 60 * 1000; //mins
     if (newState) {
       dispatch(robotOn());
-      if (!proMode)
-        intervalId = setInterval(() => {
+      if (getBackgroundMode()) {
+        updateIntervalId = BackgroundTimer.runBackgroundTimer(() => {
           bleSendRandom(
             getRandomClick(),
             getRandomMove(),
             getRandomScroll())
         }, freq);
-      else 
-        BackgroundTimer.runBackgroundTimer(() => {
+        if (stop > 0)
+          stopIntervalId = BackgroundTimer.runBackgroundTimer(() => {
+            handleStartRobot(false);
+          }, stop);
+      } else {
+        updateIntervalId = setInterval(() => {
           bleSendRandom(
             getRandomClick(),
             getRandomMove(),
             getRandomScroll())
         }, freq);
-    } else { 
+        if (stop > 0) {
+          stopIntervalId = setInterval(() => {
+            handleStartRobot(false);
+          }, stop);
+        }
+      }
+    } else {
+      // BackgroundTimer.stopBackgroundTimer();
+      clearInterval(updateIntervalId);
+      clearInterval(stopIntervalId);
       dispatch(robotOff());
-      clearInterval(intervalId);
-      BackgroundTimer.stopBackgroundTimer();
+      console.log("robot off");
     }
     setStartRobot(newState);
   }
